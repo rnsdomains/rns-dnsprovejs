@@ -1,5 +1,5 @@
 {
-  "name": "@ensdomains/dnsprovejs",
+  "name": "@rsksmart/dnsprovejs",
   "version": "0.1.8",
   "description": "Port of dnsprove.go",
   "main": "dist/dnsprover.js",
@@ -34,5 +34,18 @@
     "nock": "^9.4.3",
     "prettier": "^1.13.7",
     "truffle": "^5.0.4"
-  }
+  },
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rnsdomains/rns-dnsprovejs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rnsdomains/rns-dnsprovejs/issues"
+  },
+  "homepage": "https://github.com/rnsdomains/rns-dnsprovejs#readme"
 }

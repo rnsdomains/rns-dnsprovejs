@@ -9,6 +9,11 @@ module.exports = {
       host: 'localhost',
       port: 8545,
       network_id: '*'
+    },
+    local: {
+      host: 'localhost',
+      port: 4444,
+      network_id: '*'
     }
   },
   solc: {
