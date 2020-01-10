@@ -4,18 +4,18 @@ const packet = require('dns-packet');
 const DnsProve = require('../lib/dnsprover');
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3').utils.sha3;
-const dnsAnchors = require('@ensdomains/dnssec-oracle/lib/anchors.js');
+const dnsAnchors = require('../lib/anchors.js');
 
-const DNSSEC = artifacts.require('@ensdomains/dnssec-oracle/DNSSECImpl.sol');
+const DNSSEC = artifacts.require('@rsksmart/dnssec-oracle/DNSSECImpl.sol');
 const DummyAlgorithm = artifacts.require(
-  '@ensdomains/dnssec-oracle/DummyAlgorithm.sol'
+  './DummyAlgorithm.sol'
 );
 const DummyDigest = artifacts.require(
-  '@ensdomains/dnssec-oracle/DummyDigest.sol'
+  './DummyDigest.sol'
 );
 const ENSRegistry = artifacts.require('@ensdomains/ens/ENSRegistry.sol');
 const DNSRegistrar = artifacts.require(
-  '@ensdomains/dnsregistrar/DNSRegistrar.sol'
+  '@rsksmart/dnsregistrar/DNSRegistrar.sol'
 );
 const tld = 'xyz';
 const gas = '1000000';
@@ -78,7 +78,7 @@ contract('DNSSEC', function(accounts) {
     registrar = await DNSRegistrar.new(dnssec.address, ens.address);
 
     assert.equal(await registrar.oracle.call(), dnssec.address);
-    assert.equal(await registrar.ens.call(), ens.address);
+    assert.equal(await registrar.rns.call(), ens.address);
 
     await ens.setSubnodeOwner('0x', sha3(tld), registrar.address);
     assert.equal(await ens.owner.call(namehash.hash(tld)), registrar.address);
@@ -104,22 +104,22 @@ contract('DNSSEC', function(accounts) {
         .query({
           ct: 'application/dns-udpwireformat',
           ts: /.*/,
-          dns: 'AAEBAAABAAAAAAABBF9lbnMHbWF0b2tlbgN4eXoAABAAAQAAKRAAAACAAAAA'
+          dns: 'AAEBAAABAAAAAAABBF9ybnMHbWF0b2tlbgN4eXoAABAAAQAAKRAAAACAAAAA'
         })
         .once()
         .reply(
           200,
           packet.encode({
-            questions: [{ name: '_ens.matoken.xyz', type: 'TXT', class: 'IN' }],
+            questions: [{ name: '_rns.matoken.xyz', type: 'TXT', class: 'IN' }],
             answers: [
               {
-                name: '_ens.matoken.xyz',
+                name: '_rns.matoken.xyz',
                 type: 'TXT',
                 class: 'IN',
                 data: text
               },
               {
-                name: '_ens.matoken.xyz',
+                name: '_rns.matoken.xyz',
                 type: 'RRSIG',
                 class: 'IN',
                 data: rrsigdata('TXT', 'matoken.xyz', { labels: 3 })
@@ -133,13 +133,13 @@ contract('DNSSEC', function(accounts) {
         .query({
           ct: 'application/dns-udpwireformat',
           ts: /.*/,
-          dns: 'AAEBAAABAAAAAAABBF9lbnMHbWF0b2tlbgN4eXoAABAAAQAAKRAAAACAAAAA'
+          dns: 'AAEBAAABAAAAAAABBF9ybnMHbWF0b2tlbgN4eXoAABAAAQAAKRAAAACAAAAA'
         })
         .twice()
         .reply(
           200,
           packet.encode({
-            questions: [{ name: '_ens.matoken.xyz', type: 'TXT', class: 'IN' }],
+            questions: [{ name: '_rns.matoken.xyz', type: 'TXT', class: 'IN' }],
             answers: [],
             authorities: [
               {
@@ -149,7 +149,7 @@ contract('DNSSEC', function(accounts) {
                 class: 'IN',
                 flush: false,
                 data: {
-                  nextDomain: '_fns.matoken.xyz',
+                  nextDomain: '_sns.matoken.xyz',
                   rrtypes: ['TXT']
                 }
               },
@@ -171,21 +171,21 @@ contract('DNSSEC', function(accounts) {
         .query({
           ct: 'application/dns-udpwireformat',
           ts: /.*/,
-          dns: 'AAEBAAABAAAAAAABBF9lbnMHbWF0b2tlbgN4eXoAABAAAQAAKRAAAACAAAAA=='
+          dns: 'AAEBAAABAAAAAAABBF9ybnMHbWF0b2tlbgN4eXoAABAAAQAAKRAAAACAAAAA=='
         })
         .reply(
           200,
           packet.encode({
-            questions: [{ name: '_ens.matoken.xyz', type: 'TXT', class: 'IN' }],
+            questions: [{ name: '_rns.matoken.xyz', type: 'TXT', class: 'IN' }],
             answers: [
               {
-                name: '_ens.matoken.xyz',
+                name: '_rns.matoken.xyz',
                 type: 'TXT',
                 class: 'IN',
                 data: text
               },
               {
-                name: '_ens.matoken.xyz',
+                name: '_rns.matoken.xyz',
                 type: 'RRSIG',
                 class: 'IN',
                 data: rrsigdata('TXT', 'matoken.xyz', {
@@ -336,7 +336,7 @@ contract('DNSSEC', function(accounts) {
     it('full end to end test', async function() {
       // Step 1. Look up dns entry
       const dnsprove = new DnsProve(provider);
-      const dnsResult = await dnsprove.lookup('TXT', '_ens.matoken.xyz');
+      const dnsResult = await dnsprove.lookup('TXT', '_rns.matoken.xyz');
       const oracle = await dnsprove.getOracle(address);
       // Step 2. Checks that the result is found and is valid.
       assert.equal(dnsResult.found, true);
@@ -369,7 +369,7 @@ contract('DNSSEC', function(accounts) {
       let result = await ens.owner.call(namehash.hash('matoken.xyz'));
       assert.equal(result, owner);
       // Step 6. Call the domain again which is now removed.
-      const dnsResult2 = await dnsprove.lookup('TXT', '_ens.matoken.xyz');
+      const dnsResult2 = await dnsprove.lookup('TXT', '_rns.matoken.xyz');
       assert.equal(dnsResult2.found, false);
       assert.equal(dnsResult2.nsec, true);
       let nsecproofs = dnsResult2.proofs;
@@ -377,7 +377,7 @@ contract('DNSSEC', function(accounts) {
       // Step 7. Delete the proof
       await oracle.deleteProof(
         'TXT',
-        '_ens.matoken.xyz',
+        '_rns.matoken.xyz',
         lastProof,
         nsecproofs[nsecproofs.length - 2],
         { from: owner, gas: gas }
@@ -390,7 +390,7 @@ contract('DNSSEC', function(accounts) {
 
     it('submitAll submits all proofs at once', async function() {
       const dnsprove = new DnsProve(provider);
-      let result = await dnsprove.lookup('TXT', '_ens.matoken.xyz', address);
+      let result = await dnsprove.lookup('TXT', '_rns.matoken.xyz', address);
       let oracle = await dnsprove.getOracle(address);
       assert.equal(await oracle.getProven(result), 0);
       await oracle.submitProof(result.proofs[0], null, {
@@ -709,21 +709,21 @@ contract('DNSSEC', function(accounts) {
         ct: 'application/dns-udpwireformat',
         ts: /.*/,
         dns:
-          'AAEBAAABAAAAAAABBF9lbnMRbm9uZXhpc3Rpbmdkb21haW4DY29tAAAQAAEAACkQAAAAgAAAAA=='
+          'AAEBAAABAAAAAAABBF9ybnMRbm9uZXhpc3Rpbmdkb21haW4DY29tAAAQAAEAACkQAAAAgAAAAA=='
       })
       .times(2)
       .reply(
         200,
         packet.encode({
           questions: [
-            { name: '_ens.nonexistingdomain.com', type: 'TXT', class: 'IN' }
+            { name: '_rns.nonexistingdomain.com', type: 'TXT', class: 'IN' }
           ],
           answers: []
         })
       );
 
     const dnsprove = new DnsProve(provider);
-    let dnsResult = await dnsprove.lookup('TXT', '_ens.nonexistingdomain.com');
+    let dnsResult = await dnsprove.lookup('TXT', '_rns.nonexistingdomain.com');
     assert.equal(dnsResult.found, false);
     assert.equal(dnsResult.nsec, false);
   });

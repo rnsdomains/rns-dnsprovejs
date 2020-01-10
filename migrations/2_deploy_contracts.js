@@ -2,18 +2,18 @@
 // // 'Error: Could not find artifacts for dnssec-oracle/contracts/DummyAlgorithm.sol from any sources'
 //var dummyalgorithm    = artifacts.require("@ensdomains/dnssec-oracle/DummyAlgorithm.sol");
 //var dummydigest       = artifacts.require("@ensdomains/dnssec-oracle/DummyDigest.sol");
-var _DNSSECInterface  = artifacts.require("../../rns-dnssec-oracle/contracts/DNSSEC.sol");
-var DNSSEC            = artifacts.require("../../rns-dnssec-oracle/contracts/DNSSECImpl.sol");
-var Rsasha1           = artifacts.require("../../rns-dnssec-oracle/contracts/RSASHA1Algorithm.sol");
-var Rsasha256         = artifacts.require("../../rns-dnssec-oracle/contracts/RSASHA256Algorithm.sol");
-var Sha1              = artifacts.require("../../rns-dnssec-oracle/contracts/SHA1Digest.sol");
-var Sha256            = artifacts.require("../../rns-dnssec-oracle/contracts/SHA256Digest.sol");
-var Nsec3sha1         = artifacts.require("../../rns-dnssec-oracle/contracts/SHA1NSEC3Digest.sol");
-var DNSRegistrar      = artifacts.require("../../rns-dnsregistrar/DNSRegistrar.sol");
+var _DNSSECInterface  = artifacts.require("@rsksmart/dnssec-oracle/DNSSEC.sol");
+var DNSSEC            = artifacts.require("@rsksmart/dnssec-oracle/DNSSECImpl.sol");
+var Rsasha1           = artifacts.require("@rsksmart/dnssec-oracle/RSASHA1Algorithm.sol");
+var Rsasha256         = artifacts.require("@rsksmart/dnssec-oracle/RSASHA256Algorithm.sol");
+var Sha1              = artifacts.require("@rsksmart/dnssec-oracle/SHA1Digest.sol");
+var Sha256            = artifacts.require("@rsksmart/dnssec-oracle/SHA256Digest.sol");
+var Nsec3sha1         = artifacts.require("@rsksmart/dnssec-oracle/SHA1NSEC3Digest.sol");
+var DNSRegistrar      = artifacts.require("@rsksmart/dnsregistrar/DNSRegistrar.sol");
 var ENSRegistry       = artifacts.require("@ensdomains/ens/ENSRegistry.sol");
 
 const packet = require('dns-packet');
-const dnsAnchors = require('../../rns-dnssec-oracle/lib/anchors.js');
+
 
 var sha3     = require('web3').utils.sha3;
 var tld = "xyz";
@@ -22,7 +22,16 @@ function hexEncodeName(name) {
   return '0x' + packet.name.encode(name).toString('hex');
 }
 
-module.exports = async function(deployer) {
+module.exports = async function(deployer, network) {
+  
+
+  let dev = network == 'test' || network == 'local' || network == 'ganache';
+  let dnsAnchors;
+  if (dev) {
+    dnsAnchors = require('../lib/anchors.js');
+  } else {
+    dnsAnchors = require('@rsksmart/dnssec-oracle/lib/anchors.js');
+  }
   let anchors = dnsAnchors.realEntries;
 
   await deployer.deploy(DNSSEC, dnsAnchors.encode(anchors));
