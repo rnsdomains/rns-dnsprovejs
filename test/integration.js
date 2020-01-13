@@ -13,7 +13,7 @@ const DummyAlgorithm = artifacts.require(
 const DummyDigest = artifacts.require(
   './DummyDigest.sol'
 );
-const ENSRegistry = artifacts.require('@ensdomains/ens/ENSRegistry.sol');
+const RNSRegistry = artifacts.require("@rsksmart/rns-registry/contracts/RNS.sol");
 const DNSRegistrar = artifacts.require(
   '@rsksmart/dnsregistrar/DNSRegistrar.sol'
 );
@@ -63,10 +63,10 @@ contract('DNSSEC', function(accounts) {
   const owner = accounts[0];
   const nonOwner = accounts[1];
   const provider = web3.currentProvider;
-  let address, ens, dummyAlgorithm, dummyDigest, registrar, dnssec;
+  let address, rns, dummyAlgorithm, dummyDigest, registrar, dnssec;
 
   beforeEach(async function() {
-    ens = await ENSRegistry.new();
+    rns = await RNSRegistry.new();
     dummyAlgorithm = await DummyAlgorithm.new();
     dummyDigest = await DummyDigest.new();
     let anchors = dnsAnchors.realEntries;
@@ -75,13 +75,13 @@ contract('DNSSEC', function(accounts) {
     address = dnssec.address;
 
     assert.equal(await dnssec.anchors.call(), dnsAnchors.encode(anchors));
-    registrar = await DNSRegistrar.new(dnssec.address, ens.address);
+    registrar = await DNSRegistrar.new(dnssec.address, rns.address);
 
     assert.equal(await registrar.oracle.call(), dnssec.address);
-    assert.equal(await registrar.rns.call(), ens.address);
+    assert.equal(await registrar.rns.call(), rns.address);
 
-    await ens.setSubnodeOwner('0x', sha3(tld), registrar.address);
-    assert.equal(await ens.owner.call(namehash.hash(tld)), registrar.address);
+    await rns.setSubnodeOwner('0x', sha3(tld), registrar.address);
+    assert.equal(await rns.owner.call(namehash.hash(tld)), registrar.address);
 
     await dnssec.setAlgorithm(253, dummyAlgorithm.address);
     await dnssec.setAlgorithm(254, dummyAlgorithm.address);
@@ -366,7 +366,7 @@ contract('DNSSEC', function(accounts) {
       let tx = await registrar.claim(name, proof, { from: owner, gas:gas });
       assert.equal(tx.receipt.status, true);
       // Step 5. Confirm that the domain is owned by thw DNS record owner.
-      let result = await ens.owner.call(namehash.hash('matoken.xyz'));
+      let result = await rns.owner.call(namehash.hash('matoken.xyz'));
       assert.equal(result, owner);
       // Step 6. Call the domain again which is now removed.
       const dnsResult2 = await dnsprove.lookup('TXT', '_rns.matoken.xyz');
@@ -383,9 +383,9 @@ contract('DNSSEC', function(accounts) {
         { from: owner, gas: gas }
       );
       // assert.equal(parseInt(await oracle.knownProof(lastProof)), 0);
-      // Step 8. Remove the entry from ENS
+      // Step 8. Remove the entry from RNS
       await registrar.claim(name, '0x', { from: owner, gas:gas });
-      assert.equal(parseInt(await ens.owner.call(namehash.hash('matoken.xyz'))), 0);
+      assert.equal(parseInt(await rns.owner.call(namehash.hash('matoken.xyz'))), 0);
     });
 
     it('submitAll submits all proofs at once', async function() {

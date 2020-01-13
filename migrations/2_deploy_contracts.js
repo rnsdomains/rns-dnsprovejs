@@ -1,7 +1,5 @@
 // // Not requiring dummy algo and digest contracts here cause the following error when running tests
 // // 'Error: Could not find artifacts for dnssec-oracle/contracts/DummyAlgorithm.sol from any sources'
-//var dummyalgorithm    = artifacts.require("@ensdomains/dnssec-oracle/DummyAlgorithm.sol");
-//var dummydigest       = artifacts.require("@ensdomains/dnssec-oracle/DummyDigest.sol");
 var _DNSSECInterface  = artifacts.require("@rsksmart/dnssec-oracle/DNSSEC.sol");
 var DNSSEC            = artifacts.require("@rsksmart/dnssec-oracle/DNSSECImpl.sol");
 var Rsasha1           = artifacts.require("@rsksmart/dnssec-oracle/RSASHA1Algorithm.sol");
@@ -10,7 +8,7 @@ var Sha1              = artifacts.require("@rsksmart/dnssec-oracle/SHA1Digest.so
 var Sha256            = artifacts.require("@rsksmart/dnssec-oracle/SHA256Digest.sol");
 var Nsec3sha1         = artifacts.require("@rsksmart/dnssec-oracle/SHA1NSEC3Digest.sol");
 var DNSRegistrar      = artifacts.require("@rsksmart/dnsregistrar/DNSRegistrar.sol");
-var ENSRegistry       = artifacts.require("@ensdomains/ens/ENSRegistry.sol");
+var RNSRegistry       = artifacts.require("@rsksmart/rns-registry/RNS.sol");
 
 const packet = require('dns-packet');
 
@@ -35,19 +33,19 @@ module.exports = async function(deployer, network) {
   let anchors = dnsAnchors.realEntries;
 
   await deployer.deploy(DNSSEC, dnsAnchors.encode(anchors));
-  await deployer.deploy(ENSRegistry);
+  await deployer.deploy(RNSRegistry);
   await deployer.deploy(Rsasha256);
   await deployer.deploy(Rsasha1);
   await deployer.deploy(Sha256);
   await deployer.deploy(Sha1);
   await deployer.deploy(Nsec3sha1);
 
-  const ens = await ENSRegistry.deployed();
+  const rns = await RNSRegistry.deployed();
   const dnssec = await DNSSEC.deployed();
-  await deployer.deploy(DNSRegistrar, dnssec.address, ens.address);
+  await deployer.deploy(DNSRegistrar, dnssec.address, rns.address);
   const registrar = await DNSRegistrar.deployed();
   const rsasha1 = await Rsasha1.deployed();
-  await ens.setSubnodeOwner('0x', sha3(tld), registrar.address);
+  await rns.setSubnodeOwner('0x', sha3(tld), registrar.address);
   await dnssec.setAlgorithm(5, rsasha1.address);
   await dnssec.setAlgorithm(7, rsasha1.address);
   const rsasha256 = await Rsasha256.deployed();
